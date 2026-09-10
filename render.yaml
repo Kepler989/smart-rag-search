@@ -9,10 +9,12 @@ services:
     runtime: python
     rootDir: backend
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: ./render_start.sh
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
       - key: DATABASE_URL
         fromDatabase:
           name: smart-rag-db
