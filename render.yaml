@@ -1,0 +1,53 @@
+# ============================================================
+# Render Blueprint Specification
+# Deploys FastAPI Backend + PostgreSQL (pgvector) + Redis
+# ============================================================
+services:
+  # --- FastAPI Backend Web Service ---
+  - type: web
+    name: smart-rag-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: ./render_start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-rag-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: smart-rag-redis
+          property: connectionString
+      - key: GOOGLE_API_KEY
+        sync: false  # Render will prompt you to enter your Gemini API key
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: EMBEDDING_MODEL
+        value: text-embedding-004
+      - key: EMBEDDING_DIMENSIONS
+        value: "768"
+      - key: LLM_MODEL
+        value: gemini-2.5-flash
+      - key: TOP_K_RESULTS
+        value: "5"
+
+  # --- Redis Cache Service ---
+  - type: redis
+    name: smart-rag-redis
+    plan: free
+    ipAllowList: []  # Internal network access only
+
+databases:
+  # --- PostgreSQL with pgvector support ---
+  - name: smart-rag-db
+    databaseName: ragdb
+    user: raguser
+    plan: free
