@@ -1,0 +1,18 @@
+ARTIFICIAL INTELLIGENCE AND NEURAL NETWORKS PRIMER
+
+1. Deep Learning Foundations
+Deep learning is a subset of machine learning based on artificial neural networks with multiple layers (hence "deep"). These architectures are capable of learning hierarchical feature representations directly from raw data without manual feature engineering.
+
+2. Transformer Architecture
+Introduced in 2017 in the paper "Attention Is All You Need" by Vaswani et al., the Transformer architecture replaced recurrent neural networks (RNNs) and LSTMs. Transformers utilize self-attention mechanisms that compute attention scores across all tokens in parallel, drastically improving scalability on modern GPU accelerators.
+
+3. Self-Attention Formula
+The core scaled dot-product attention is defined mathematically as:
+Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V
+Where Q is Query, K is Key, V is Value, and d_k is the dimensionality of the keys.
+
+4. Hallucination in Generative Models
+Large Language Models generate text based on probabilistic token prediction. When queries fall outside training distributions or involve fast-evolving real-time knowledge, models can hallucinate confident but factually incorrect assertions. Retrieval-Augmented Generation (RAG) acts as an external memory system that grounds outputs on verifiable source snippets.
+
+5. Vector Embeddings
+Vector embeddings map discrete tokens, sentences, or paragraphs into a continuous dense geometric space. Words or sentences with similar semantic intent are positioned close to each other in Euclidean or cosine space, enabling semantic search beyond exact keyword matching.
