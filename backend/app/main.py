@@ -83,7 +83,17 @@ def create_app() -> FastAPI:
     app.include_router(documents_router, prefix="/api/v1")
     app.include_router(query_router, prefix="/api/v1")
 
-    # --- Health Check ---
+    # --- Root & Health Check ---
+    @app.get("/", tags=["Root"])
+    async def root():
+        return {
+            "name": "Smart RAG Document Search API",
+            "version": "1.0.0",
+            "status": "healthy",
+            "docs_url": "/docs",
+            "health_url": "/health",
+        }
+
     @app.get("/health", tags=["Health"])
     async def health_check():
         return {
