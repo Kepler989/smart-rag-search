@@ -9,7 +9,16 @@ import type {
   RAGResponse,
 } from "./types";
 
-const rawApiBase = process.env.DATABASE_URL?.trim() || "http://localhost:8000";
+const defaultApiUrl =
+  typeof window !== "undefined" &&
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1"
+    ? "https://smart-rag-backend-bqfe.onrender.com"
+    : process.env.NODE_ENV === "production"
+    ? "https://smart-rag-backend-bqfe.onrender.com"
+    : "http://localhost:8000";
+
+const rawApiBase = process.env.NEXT_PUBLIC_API_URL?.trim() || defaultApiUrl;
 const API_BASE = rawApiBase.replace(/\/+$/, "");
 const API_V1 = `${API_BASE}/api/v1`;
 

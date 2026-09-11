@@ -24,7 +24,7 @@ fi
 
 if [ ! -f "$ROOT_DIR/frontend/.env.local" ]; then
     echo "Creating frontend/.env.local..."
-    echo "DATABASE_URL=http://localhost:8000" > "$ROOT_DIR/frontend/.env.local"
+    echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > "$ROOT_DIR/frontend/.env.local"
 fi
 
 # 2. Python Virtual Environment
