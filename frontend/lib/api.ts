@@ -9,16 +9,48 @@ import type {
   RAGResponse,
 } from "./types";
 
-const defaultApiUrl =
-  typeof window !== "undefined" &&
-  window.location.hostname !== "localhost" &&
-  window.location.hostname !== "127.0.0.1"
-    ? "https://smart-rag-backend-bqfe.onrender.com"
-    : process.env.NODE_ENV === "production"
-    ? "https://smart-rag-backend-bqfe.onrender.com"
-    : "http://localhost:8000";
+const PROD_BACKEND_URL = "https://smart-rag-backend-bqfe.onrender.com";
 
-const rawApiBase = process.env.NEXT_PUBLIC_API_URL?.trim() || defaultApiUrl;
+function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  // Check if envUrl is missing, empty, or a dummy placeholder
+  const isDummyUrl =
+    !envUrl ||
+    envUrl.includes("your-backend-api-url.com") ||
+    envUrl.includes("example.com") ||
+    envUrl.includes("<") ||
+    envUrl === "";
+
+  // If in browser on a deployed domain (like Vercel)
+  const isDeployedClient =
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1";
+
+  // If deployed on Vercel but envUrl points to localhost or is a placeholder,
+  // automatically route to the production Render backend
+  if (isDeployedClient) {
+    if (isDummyUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
+      return PROD_BACKEND_URL;
+    }
+  }
+
+  // If not dummy and valid, use the provided environment variable
+  if (!isDummyUrl && envUrl) {
+    return envUrl;
+  }
+
+  // Production build / SSR default
+  if (process.env.NODE_ENV === "production") {
+    return PROD_BACKEND_URL;
+  }
+
+  // Local development default
+  return "http://localhost:8000";
+}
+
+const rawApiBase = getApiBaseUrl();
 const API_BASE = rawApiBase.replace(/\/+$/, "");
 const API_V1 = `${API_BASE}/api/v1`;
 
