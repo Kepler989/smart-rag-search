@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # --- App ---
     environment: str = "development"
     log_level: str = "INFO"
-    cors_origins: str = "http://localhost:3000,http://localhost:3001"
+    cors_origins: str = "http://localhost:3000,http://localhost:3001,https://smart-rag-search-uxhg-five.vercel.app"
 
     # --- File Upload ---
     max_file_size_mb: int = 50
