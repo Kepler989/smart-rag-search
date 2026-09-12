@@ -30,7 +30,13 @@ class Document(Base):
     file_type: Mapped[str] = mapped_column(String(20), nullable=False)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[DocumentStatus] = mapped_column(
-        Enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False
+        Enum(
+            DocumentStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            name="documentstatus",
+        ),
+        default=DocumentStatus.PENDING,
+        nullable=False,
     )
     total_chunks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[str | None] = mapped_column(String(1024), nullable=True)

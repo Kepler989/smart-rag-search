@@ -5,7 +5,8 @@ Registers routers, middleware, startup/shutdown lifecycle hooks.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.documents import router as documents_router
@@ -59,7 +60,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # --- CORS ---
+    # --- Latency Tracking Middleware (inner) ---
+    app.add_middleware(LatencyTrackingMiddleware)
+
+    # --- CORS (outermost so all responses including errors include CORS headers) ---
     origins = settings.cors_origins_list
     allow_all = "*" in origins
     app.add_middleware(
@@ -77,8 +81,14 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # --- Latency Tracking Middleware ---
-    app.add_middleware(LatencyTrackingMiddleware)
+    # --- Global Exception Handler (ensures 500s return JSON with CORS headers) ---
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        logger.exception("Unhandled error processing %s: %s", request.url.path, exc)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal server error: {str(exc)}"},
+        )
 
     # --- Routers ---
     app.include_router(documents_router, prefix="/api/v1")

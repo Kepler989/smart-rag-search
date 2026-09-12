@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # --- Google Gemini ---
     google_api_key: str = ""
-    embedding_model: str = "text-embedding-004"
+    embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768
     llm_model: str = "gemini-2.5-flash"
 

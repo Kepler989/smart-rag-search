@@ -26,6 +26,32 @@ def get_genai_client() -> genai.Client:
     return _client
 
 
+def _call_embed_with_fallback(client: genai.Client, text: str, task_type: str) -> list[float]:
+    models_to_try = [settings.embedding_model]
+    if "gemini-embedding-001" not in models_to_try:
+        models_to_try.append("gemini-embedding-001")
+    if "gemini-embedding-2" not in models_to_try:
+        models_to_try.append("gemini-embedding-2")
+
+    last_error = None
+    for model in models_to_try:
+        try:
+            res = client.models.embed_content(
+                model=model,
+                contents=text,
+                config=types.EmbedContentConfig(
+                    task_type=task_type,
+                    output_dimensionality=settings.embedding_dimensions,
+                ),
+            )
+            return res.embeddings[0].values
+        except Exception as e:
+            logger.warning("Embedding with model %s failed: %s. Trying next...", model, e)
+            last_error = e
+
+    raise last_error or RuntimeError("All embedding models failed")
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -37,21 +63,11 @@ async def embed_text(text: str) -> list[float]:
     Uses task_type=RETRIEVAL_DOCUMENT for indexing.
     """
     client = get_genai_client()
-
-    # Run the synchronous call in a thread pool to avoid blocking the event loop
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
+    return await loop.run_in_executor(
         None,
-        lambda: client.models.embed_content(
-            model=settings.embedding_model,
-            contents=text,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_DOCUMENT",
-                output_dimensionality=settings.embedding_dimensions,
-            ),
-        ),
+        lambda: _call_embed_with_fallback(client, text, "RETRIEVAL_DOCUMENT"),
     )
-    return result.embeddings[0].values
 
 
 @retry(
@@ -65,20 +81,11 @@ async def embed_query(text: str) -> list[float]:
     Uses task_type=RETRIEVAL_QUERY for query-side encoding.
     """
     client = get_genai_client()
-
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
+    return await loop.run_in_executor(
         None,
-        lambda: client.models.embed_content(
-            model=settings.embedding_model,
-            contents=text,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY",
-                output_dimensionality=settings.embedding_dimensions,
-            ),
-        ),
+        lambda: _call_embed_with_fallback(client, text, "RETRIEVAL_QUERY"),
     )
-    return result.embeddings[0].values
 
 
 async def embed_texts_batch(texts: list[str], batch_size: int = 10) -> list[list[float]]:

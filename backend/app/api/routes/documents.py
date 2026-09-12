@@ -58,7 +58,11 @@ async def upload_document(
 
     # Save to uploads directory
     upload_dir = Path(settings.upload_dir)
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        upload_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        upload_dir = Path("/tmp/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
     safe_filename = f"{uuid.uuid4()}{suffix}"
     file_path = upload_dir / safe_filename
     file_path.write_bytes(content)

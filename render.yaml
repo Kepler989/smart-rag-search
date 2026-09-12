@@ -33,7 +33,7 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: EMBEDDING_MODEL
-        value: text-embedding-004
+        value: gemini-embedding-001
       - key: EMBEDDING_DIMENSIONS
         value: "768"
       - key: LLM_MODEL
