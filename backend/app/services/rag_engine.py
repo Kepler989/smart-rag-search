@@ -25,7 +25,7 @@ SYSTEM_PROMPT = """You are a precise, expert document assistant. Your task is to
 
 Rules:
 1. Answer ONLY from the provided context. If the context does not contain sufficient information, say so clearly.
-2. For EVERY fact or statement you make, you MUST cite the source using the format: [Source: {document_name}, Page {page}] or [Source: {document_name}, Section: {section}].
+2. For EVERY fact or statement you make, you MUST cite the source using the format: [Source: {{document_name}}, Page {{page}}] or [Source: {{document_name}}, Section: {{section}}].
 3. Structure your answer clearly. Use bullet points or numbered lists where appropriate.
 4. If multiple sources support a fact, cite all of them.
 5. Do not fabricate or infer information beyond what is in the context.
@@ -59,7 +59,7 @@ def _build_context_block(sources: list[SourceCitation]) -> str:
 def _build_prompt(query: str, sources: list[SourceCitation]) -> str:
     """Construct the full RAG prompt."""
     context = _build_context_block(sources)
-    system = SYSTEM_PROMPT.format(context=context)
+    system = SYSTEM_PROMPT.replace("{context}", context)
     return f"{system}\n\nQuestion: {query}"
 
 
@@ -141,17 +141,17 @@ async def stream_rag_response(
     import json
     import time
 
-    client = genai.Client(api_key=settings.google_api_key)
-    prompt = _build_prompt(query, sources)
-
-    # Yield sources immediately before streaming starts
-    sources_payload = [s.model_dump(mode="json") for s in sources]
-    yield f"data: {json.dumps({'type': 'sources', 'sources': sources_payload})}\n\n"
-
     start_llm = time.perf_counter()
     loop = asyncio.get_event_loop()
 
     try:
+        client = genai.Client(api_key=settings.google_api_key)
+        prompt = _build_prompt(query, sources)
+
+        # Yield sources immediately before streaming starts
+        sources_payload = [s.model_dump(mode="json") for s in sources]
+        yield f"data: {json.dumps({'type': 'sources', 'sources': sources_payload})}\n\n"
+
         # Run the streaming call in executor to not block the event loop
         def _stream():
             return client.models.generate_content_stream(
@@ -171,20 +171,19 @@ async def stream_rag_response(
                 # Small sleep to allow other coroutines to run
                 await asyncio.sleep(0)
 
+        llm_ms = (time.perf_counter() - start_llm) * 1000
+        total_ms = embedding_ms + vector_search_ms + llm_ms
+
+        latency = LatencyMetrics(
+            embedding_ms=round(embedding_ms, 2),
+            vector_search_ms=round(vector_search_ms, 2),
+            llm_generation_ms=round(llm_ms, 2),
+            total_ms=round(total_ms, 2),
+            cached=False,
+        )
+        yield f"data: {json.dumps({'type': 'latency', 'latency': latency.model_dump(mode='json')})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
     except Exception as e:
         logger.error("Streaming generation error: %s", e)
         yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-        return
-
-    llm_ms = (time.perf_counter() - start_llm) * 1000
-    total_ms = embedding_ms + vector_search_ms + llm_ms
-
-    latency = LatencyMetrics(
-        embedding_ms=round(embedding_ms, 2),
-        vector_search_ms=round(vector_search_ms, 2),
-        llm_generation_ms=round(llm_ms, 2),
-        total_ms=round(total_ms, 2),
-        cached=False,
-    )
-    yield f"data: {json.dumps({'type': 'latency', 'latency': latency.model_dump()})}\n\n"
-    yield f"data: {json.dumps({'type': 'done'})}\n\n"
